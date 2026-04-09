@@ -32,12 +32,14 @@ app.use(session({
   },
 }));
 
-mongoose.connect(mongoUrl);
+mongoose.set("strictQuery", false);
+mongoose.connect(mongoUrl, {
+  serverSelectionTimeoutMS: 10000,
+});
 
-mongoose.connection.on("error", console.error.bind(console, "MongoDB connection error:"));
-
-mongoose.connection.once("open", () => {
-  console.log("Connected to MongoDB");
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB connection error:", err);
+  process.exit(1);
 });
 
 app.use("/admin", adminRoutes);
@@ -58,6 +60,9 @@ app.use((err, req, res, next) => {
   return res.status(500).send("Internal server error");
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+mongoose.connection.once("open", () => {
+  console.log("Connected to MongoDB");
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
 });
