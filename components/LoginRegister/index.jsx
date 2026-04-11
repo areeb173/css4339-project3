@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Divider,
   Grid,
   Stack,
   TextField,
@@ -18,6 +19,7 @@ import queryKeys from "../../lib/queryKeys";
 const emptyRegisterForm = {
   login_name: "",
   password: "",
+  confirm_password: "",
   first_name: "",
   last_name: "",
   location: "",
@@ -35,6 +37,14 @@ export default function LoginRegister() {
   const [registerForm, setRegisterForm] = useState(emptyRegisterForm);
   const [loginError, setLoginError] = useState("");
   const [registerError, setRegisterError] = useState("");
+  // Track whether the user has tried to submit the register form (for confirm-password inline error)
+  const [registerSubmitAttempted, setRegisterSubmitAttempted] = useState(false);
+
+  const passwordsMatch =
+    registerForm.confirm_password === "" ||
+    registerForm.password === registerForm.confirm_password;
+  const confirmPasswordError =
+    registerSubmitAttempted && registerForm.password !== registerForm.confirm_password;
 
   const handleAuthSuccess = (user) => {
     queryClient.setQueryData(queryKeys.sessionUser, user);
@@ -46,7 +56,9 @@ export default function LoginRegister() {
     mutationFn: api.login,
     onSuccess: handleAuthSuccess,
     onError: (error) => {
-      setLoginError(getErrorMessage(error, "Login failed."));
+      // Clear the password so the user must retype it after a failed attempt
+      setLoginForm((current) => ({ ...current, password: "" }));
+      setLoginError(getErrorMessage(error, "Incorrect login name or password. Please try again."));
     },
   });
 
@@ -60,7 +72,7 @@ export default function LoginRegister() {
     },
     onSuccess: handleAuthSuccess,
     onError: (error) => {
-      setRegisterError(getErrorMessage(error, "Registration failed."));
+      setRegisterError(getErrorMessage(error, "Registration failed. Please check your details and try again."));
     },
   });
 
@@ -75,15 +87,24 @@ export default function LoginRegister() {
 
   const submitRegistration = (event) => {
     event.preventDefault();
+    setRegisterSubmitAttempted(true);
     setRegisterError("");
+
+    if (registerForm.password !== registerForm.confirm_password) {
+      setRegisterError("Passwords do not match. Please re-enter your password.");
+      return;
+    }
+
+    // Strip confirm_password before sending to API
+    const { confirm_password: _unused, ...payload } = registerForm;
     registerMutation.mutate({
-      ...registerForm,
-      login_name: registerForm.login_name.trim(),
-      first_name: registerForm.first_name.trim(),
-      last_name: registerForm.last_name.trim(),
-      location: registerForm.location.trim(),
-      description: registerForm.description.trim(),
-      occupation: registerForm.occupation.trim(),
+      ...payload,
+      login_name: payload.login_name.trim(),
+      first_name: payload.first_name.trim(),
+      last_name: payload.last_name.trim(),
+      location: payload.location.trim(),
+      description: payload.description.trim(),
+      occupation: payload.occupation.trim(),
     });
   };
 
@@ -97,29 +118,36 @@ export default function LoginRegister() {
           Photo sharing with real auth, session state, and live comment updates.
         </Typography>
         <Typography variant="body1" className="auth-copy">
-          Sign in with one of the seeded accounts like `took` / `password`, or create a new
-          account and jump straight into the app.
+          Sign in with a seeded account (e.g. login name{" "}
+          <strong>took</strong>, password <strong>weak</strong>), or create a
+          new account to jump straight into the app.
         </Typography>
       </Stack>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} alignItems="stretch">
+        {/* ── Login card ── */}
         <Grid item xs={12} md={5}>
-          <Card className="auth-card auth-card-login">
-            <CardContent>
+          <Card className="auth-card auth-card-login" sx={{ height: "100%" }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Typography variant="h5" gutterBottom>
-                Login
+                Sign In
               </Typography>
-              <Typography variant="body2" sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Continue with an existing account.
               </Typography>
 
-              <Box component="form" onSubmit={submitLogin}>
-                <Stack spacing={2}>
-                  {loginError ? <Alert severity="error">{loginError}</Alert> : null}
+              <Box component="form" onSubmit={submitLogin} noValidate>
+                <Stack spacing={2.5}>
+                  {loginError ? (
+                    <Alert severity="error" onClose={() => setLoginError("")}>
+                      {loginError}
+                    </Alert>
+                  ) : null}
                   <TextField
                     label="Login Name"
                     value={loginForm.login_name}
                     onChange={(event) => {
+                      setLoginError("");
                       setLoginForm((current) => ({
                         ...current,
                         login_name: event.target.value,
@@ -127,6 +155,7 @@ export default function LoginRegister() {
                     }}
                     required
                     autoComplete="username"
+                    inputProps={{ maxLength: 64 }}
                     fullWidth
                   />
                   <TextField
@@ -134,6 +163,7 @@ export default function LoginRegister() {
                     type="password"
                     value={loginForm.password}
                     onChange={(event) => {
+                      setLoginError("");
                       setLoginForm((current) => ({
                         ...current,
                         password: event.target.value,
@@ -148,8 +178,9 @@ export default function LoginRegister() {
                     size="large"
                     type="submit"
                     disabled={loginMutation.isPending}
+                    fullWidth
                   >
-                    {loginMutation.isPending ? "Signing In..." : "Sign In"}
+                    {loginMutation.isPending ? "Signing In…" : "Sign In"}
                   </Button>
                 </Stack>
               </Box>
@@ -157,19 +188,29 @@ export default function LoginRegister() {
           </Card>
         </Grid>
 
+        {/* ── Register card ── */}
         <Grid item xs={12} md={7}>
-          <Card className="auth-card auth-card-register">
-            <CardContent>
+          <Card className="auth-card auth-card-register" sx={{ height: "100%" }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Typography variant="h5" gutterBottom>
-                Register
+                Create Account
               </Typography>
-              <Typography variant="body2" sx={{ mb: 3 }}>
-                Create a new account, then we will log you in automatically.
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                New here? Fill in the form and we will log you in automatically.
               </Typography>
 
-              <Box component="form" onSubmit={submitRegistration}>
+              <Box component="form" onSubmit={submitRegistration} noValidate>
                 <Stack spacing={2}>
-                  {registerError ? <Alert severity="error">{registerError}</Alert> : null}
+                  {registerError ? (
+                    <Alert severity="error" onClose={() => setRegisterError("")}>
+                      {registerError}
+                    </Alert>
+                  ) : null}
+
+                  {/* ── Credentials section ── */}
+                  <Typography variant="caption" className="auth-section-label">
+                    Login credentials
+                  </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
                       <TextField
@@ -183,8 +224,13 @@ export default function LoginRegister() {
                         }}
                         required
                         autoComplete="username"
+                        inputProps={{ maxLength: 64 }}
+                        helperText="Must be unique across all users"
                         fullWidth
                       />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      {/* spacer on desktop so the password pair lines up */}
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
@@ -204,6 +250,37 @@ export default function LoginRegister() {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
+                        label="Confirm Password"
+                        type="password"
+                        value={registerForm.confirm_password}
+                        onChange={(event) => {
+                          setRegisterForm((current) => ({
+                            ...current,
+                            confirm_password: event.target.value,
+                          }));
+                        }}
+                        required
+                        autoComplete="new-password"
+                        error={confirmPasswordError || (!passwordsMatch && registerForm.confirm_password !== "")}
+                        helperText={
+                          confirmPasswordError || (!passwordsMatch && registerForm.confirm_password !== "")
+                            ? "Passwords do not match"
+                            : ""
+                        }
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Divider sx={{ my: 0.5 }} />
+
+                  {/* ── Profile section ── */}
+                  <Typography variant="caption" className="auth-section-label">
+                    Profile info
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
                         label="First Name"
                         value={registerForm.first_name}
                         onChange={(event) => {
@@ -213,6 +290,7 @@ export default function LoginRegister() {
                           }));
                         }}
                         required
+                        helperText="Shown on your profile"
                         fullWidth
                       />
                     </Grid>
@@ -227,6 +305,7 @@ export default function LoginRegister() {
                           }));
                         }}
                         required
+                        helperText="Shown on your profile"
                         fullWidth
                       />
                     </Grid>
@@ -240,6 +319,7 @@ export default function LoginRegister() {
                             location: event.target.value,
                           }));
                         }}
+                        helperText="Optional"
                         fullWidth
                       />
                     </Grid>
@@ -253,6 +333,7 @@ export default function LoginRegister() {
                             occupation: event.target.value,
                           }));
                         }}
+                        helperText="Optional"
                         fullWidth
                       />
                     </Grid>
@@ -268,17 +349,20 @@ export default function LoginRegister() {
                         }}
                         multiline
                         minRows={3}
+                        helperText="Optional — tell other users a bit about yourself"
                         fullWidth
                       />
                     </Grid>
                   </Grid>
+
                   <Button
                     variant="contained"
                     size="large"
                     type="submit"
                     disabled={registerMutation.isPending}
+                    fullWidth
                   >
-                    {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                    {registerMutation.isPending ? "Creating Account…" : "Create Account"}
                   </Button>
                 </Stack>
               </Box>
