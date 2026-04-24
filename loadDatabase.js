@@ -1,4 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
+import "dotenv/config";
+// eslint-disable-next-line import/no-extraneous-dependencies
 import mongoose from "mongoose";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import bluebird from "bluebird";
@@ -10,7 +12,22 @@ import SchemaInfo from "./schema/schemaInfo.js";
 const SEEDED_PASSWORD_DIGEST =
   "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi";
 
-const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1/project3";
+const cloudinaryUrls = {
+  "kenobi1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568710/photoapp-seed/kenobi1.jpg",
+  "kenobi2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568711/photoapp-seed/kenobi2.jpg",
+  "kenobi3.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568711/photoapp-seed/kenobi3.jpg",
+  "kenobi4.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568712/photoapp-seed/kenobi4.jpg",
+  "ludgate1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568712/photoapp-seed/ludgate1.jpg",
+  "malcolm1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568713/photoapp-seed/malcolm1.jpg",
+  "malcolm2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568713/photoapp-seed/malcolm2.jpg",
+  "ouster.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568714/photoapp-seed/ouster.jpg",
+  "ripley1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568714/photoapp-seed/ripley1.jpg",
+  "ripley2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568715/photoapp-seed/ripley2.jpg",
+  "took1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568715/photoapp-seed/took1.jpg",
+  "took2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568716/photoapp-seed/took2.jpg",
+};
+
+const mongoUrl = process.env.MONGODB_URI || process.env.MONGO_URL || "mongodb://127.0.0.1/project4";
 
 mongoose.Promise = bluebird;
 mongoose.set("strictQuery", false);
@@ -63,8 +80,13 @@ async function loadDatabase() {
 
   await Promise.all(
     photoModels.map(async (photo) => {
+      const seededPhotoUrl = cloudinaryUrls[photo.file_name];
+      if (!seededPhotoUrl) {
+        throw new Error(`Missing Cloudinary URL mapping for seeded photo '${photo.file_name}'`);
+      }
+
       const photoObj = await Photo.create({
-        file_name: photo.file_name,
+        file_name: seededPhotoUrl,
         date_time: photo.date_time,
         user_id: mapFakeId2RealId[photo.user_id],
       });

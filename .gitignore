@@ -2,5 +2,8 @@ node_modules/
 test/node_modules/
 dist/
 .DS_Store
+.env
+.env.*
+!.env.example
 package-lock.json
 test/package-lock.json

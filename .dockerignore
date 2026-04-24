@@ -1,0 +1,9 @@
+node_modules
+test/node_modules
+dist
+.env
+.env.*
+package-lock.json
+test/package-lock.json
+.git
+.DS_Store
