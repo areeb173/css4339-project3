@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
+// eslint-disable-next-line import/no-unresolved, import/no-extraneous-dependencies
 import "dotenv/config";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import mongoose from "mongoose";

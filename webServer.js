@@ -1,4 +1,5 @@
 import crypto from "crypto";
+// eslint-disable-next-line import/no-unresolved
 import "dotenv/config";
 import express from "express";
 import cors from "cors";

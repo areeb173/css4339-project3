@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import api, { getErrorMessage } from "../../lib/api";
 import queryKeys from "../../lib/queryKeys";
+import "./styles.css";
 
 function formatDate(dateString) {
   return new Date(dateString).toLocaleString();
@@ -175,13 +176,15 @@ export default function UserPhotos() {
                 <Button
                   size="small"
                   variant={photo.likes?.includes(currentUserId) ? "contained" : "outlined"}
-                  color={photo.likes?.includes(currentUserId) ? "secondary" : "primary"}
+                  color={photo.likes?.includes(currentUserId) ? "error" : "inherit"}
+                  className={photo.likes?.includes(currentUserId) ? "like-btn like-btn--active" : "like-btn"}
                   onClick={() => likeMutation.mutate(photo._id)}
                   disabled={isLikePendingFor(photo._id)}
+                  aria-label={photo.likes?.includes(currentUserId) ? "Unlike photo" : "Like photo"}
                 >
-                  {photo.likes?.includes(currentUserId) ? "Unlike" : "Like"}
+                  {photo.likes?.includes(currentUserId) ? "❤️" : "🤍"}
                   {" "}
-                  ({photo.likes?.length || 0})
+                  {photo.likes?.length || 0}
                 </Button>
               </Stack>
 
