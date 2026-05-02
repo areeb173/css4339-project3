@@ -1,2 +1,2 @@
-Frontend: https://css4339-project3.vercel.app
+Frontend: https://css4339-project3-77jb.vercel.app
 Backend: https://css4339-project3.onrender.com

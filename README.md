@@ -1,7 +1,7 @@
 # Project 4: Photo Sharing App
 
 ## Deployed URLs
-- Frontend (Vercel): https://css4339-project3.vercel.app
+- Frontend (Vercel): https://css4339-project3-77jb.vercel.app
 - Backend (Render): https://css4339-project3.onrender.com
 
 ## Local Setup
