@@ -57,9 +57,17 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
       - name: Trigger Vercel deployment
-        if: ${{ secrets.VERCEL_DEPLOY_HOOK_URL != '' }}
-        run: curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
+        run: |
+          if [ -n "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL"
+          fi
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
 
       - name: Trigger Render deployment
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
+            curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          fi
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
