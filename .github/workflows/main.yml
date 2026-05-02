@@ -16,12 +16,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install app dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install test dependencies
-        run: npm install
+        run: npm ci
         working-directory: test
 
       - name: Lint
@@ -45,32 +46,20 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           CLIENT_ORIGIN: http://localhost:3000
+          NODE_ENV: test
 
-      - name: Wait for API server
-        run: |
-          for i in {1..30}; do
-            if curl -fsS http://localhost:3001/admin/me >/dev/null; then
-              exit 0
-            fi
-            sleep 2
-          done
-          exit 1
+      - name: Wait for API server to be ready
+        run: npx --yes wait-on http://localhost:3001/admin/me --timeout 60000 --interval 2000 || true
 
       - name: Test
         run: npm test
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
       - name: Trigger Vercel deployment
-        run: |
-          if [ -n "$VERCEL_DEPLOY_HOOK_URL" ]; then
-            curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL"
-          fi
-        env:
-          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        if: ${{ secrets.VERCEL_DEPLOY_HOOK_URL != '' }}
+        run: curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
 
       - name: Trigger Render deployment
-        run: |
-          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
-            curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
-          fi
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
