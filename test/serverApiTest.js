@@ -30,13 +30,28 @@ const userDetailProperties = [
   "occupation",
 ];
 // Valid properties of the photo model
-const photoProperties = ["file_name", "date_time", "user_id", "_id", "comments"];
+const photoProperties = ["file_name", "date_time", "user_id", "_id", "comments", "likes"];
 // Valid comments properties
 const commentProperties = ["comment", "date_time", "_id", "user"];
 
 function assertEqualDates(d1, d2) {
   assert(new Date(d1).valueOf() === new Date(d2).valueOf());
 }
+
+const cloudinaryUrls = {
+  "kenobi1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568710/photoapp-seed/kenobi1.jpg",
+  "kenobi2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568711/photoapp-seed/kenobi2.jpg",
+  "kenobi3.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568711/photoapp-seed/kenobi3.jpg",
+  "kenobi4.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568712/photoapp-seed/kenobi4.jpg",
+  "ludgate1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568712/photoapp-seed/ludgate1.jpg",
+  "malcolm1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568713/photoapp-seed/malcolm1.jpg",
+  "malcolm2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568713/photoapp-seed/malcolm2.jpg",
+  "ouster.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568714/photoapp-seed/ouster.jpg",
+  "ripley1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568714/photoapp-seed/ripley1.jpg",
+  "ripley2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568715/photoapp-seed/ripley2.jpg",
+  "took1.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568715/photoapp-seed/took1.jpg",
+  "took2.jpg": "https://res.cloudinary.com/megamukil/image/upload/v1776568716/photoapp-seed/took2.jpg",
+};
 
 /**
  * MongoDB automatically adds some properties to our models. We allow these to
@@ -388,13 +403,14 @@ describe("Photo App: Server API Tests", function () {
                   "wrong number of photos returned"
                 );
                 _.forEach(real_photos, function (real_photo) {
+                  const expectedFileName = cloudinaryUrls[real_photo.file_name];
                   const matches = _.filter(photos, {
-                    file_name: real_photo.file_name,
+                    file_name: expectedFileName,
                   });
                   assert.strictEqual(
                     matches.length,
                     1,
-                    " looking for photo " + real_photo.file_name
+                    " looking for photo " + expectedFileName
                   );
                   const photo = matches[0];
                   const extraProps1 = _.difference(
@@ -408,7 +424,8 @@ describe("Photo App: Server API Tests", function () {
                   );
                   assert.strictEqual(photo.user_id, id);
                   assertEqualDates(photo.date_time, real_photo.date_time);
-                  assert.strictEqual(photo.file_name, real_photo.file_name);
+                  assert.strictEqual(photo.file_name, expectedFileName);
+                  assert(Array.isArray(photo.likes), "photo likes is an array");
 
                   if (real_photo.comments) {
                     assert.strictEqual(

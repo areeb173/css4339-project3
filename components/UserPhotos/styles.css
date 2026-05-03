@@ -1,0 +1,22 @@
+.like-btn {
+  min-width: 64px;
+  font-size: 1rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.like-btn:active {
+  transform: scale(0.92);
+}
+
+.like-btn--active {
+  box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.25);
+}
+
+.photo-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}

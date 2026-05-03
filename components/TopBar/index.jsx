@@ -6,13 +6,19 @@ import {
   Button,
   CircularProgress,
   Collapse,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
   Toolbar,
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
-import api from "../../lib/api";
+import api, { getErrorMessage } from "../../lib/api";
 import queryKeys from "../../lib/queryKeys";
+import "./styles.css";
 
 function getViewedUserId(pathname) {
   const detailMatch = pathname.match(/^\/users\/([^/]+)$/);
@@ -36,6 +42,54 @@ export default function TopBar({ currentUser }) {
   });
 
   const [logoutError, setLogoutError] = React.useState("");
+  const [uploadOpen, setUploadOpen] = React.useState(false);
+  const [selectedFile, setSelectedFile] = React.useState(null);
+  const [previewUrl, setPreviewUrl] = React.useState(null);
+  const [uploadError, setUploadError] = React.useState("");
+
+  const uploadMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedFile) {
+        throw new Error("Choose an image before uploading.");
+      }
+
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+        || import.meta.env.VITE_CLOUDINARY_PRESET;
+
+      if (!cloudName || !uploadPreset) {
+        throw new Error("Cloudinary environment variables are missing.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("upload_preset", uploadPreset);
+
+      const cloudinaryResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formData },
+      );
+
+      const cloudinaryData = await cloudinaryResponse.json();
+
+      if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
+        throw new Error(cloudinaryData.error?.message || "Cloudinary upload failed.");
+      }
+
+      return api.createPhoto(cloudinaryData.secure_url);
+    },
+    onSuccess: () => {
+      setUploadOpen(false);
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setUploadError("");
+      queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
+      navigate(`/users/${currentUser._id}/photos`);
+    },
+    onError: (error) => {
+      setUploadError(getErrorMessage(error, "Unable to upload photo."));
+    },
+  });
 
   const logoutMutation = useMutation({
     mutationFn: api.logout,
@@ -102,6 +156,19 @@ export default function TopBar({ currentUser }) {
               {`Hi, ${currentUser.first_name}`}
             </Typography>
             <Button
+              variant="contained"
+              color="secondary"
+              className="topbar-add-photo-btn"
+              onClick={() => {
+                setUploadError("");
+                setPreviewUrl(null);
+                setSelectedFile(null);
+                setUploadOpen(true);
+              }}
+            >
+              + Add Photo
+            </Button>
+            <Button
               variant="outlined"
               color="inherit"
               onClick={() => {
@@ -128,6 +195,97 @@ export default function TopBar({ currentUser }) {
           </Collapse>
         </Box>
       </Toolbar>
+
+      <Dialog
+        open={uploadOpen}
+        onClose={() => {
+          if (!uploadMutation.isPending) {
+            setUploadOpen(false);
+            setPreviewUrl(null);
+            setSelectedFile(null);
+            setUploadError("");
+          }
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Add Photo</DialogTitle>
+        <DialogContent>
+          {uploadMutation.isPending && (
+            <LinearProgress sx={{ mb: 1 }} />
+          )}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            {uploadError ? (
+              <Alert severity="error" onClose={() => setUploadError("")}>
+                {uploadError}
+              </Alert>
+            ) : null}
+
+            <Button
+              variant="outlined"
+              component="label"
+              disabled={uploadMutation.isPending}
+              className="upload-choose-btn"
+            >
+              {selectedFile ? `✓ ${selectedFile.name}` : "📁 Choose Image"}
+              <input
+                hidden
+                accept="image/*"
+                type="file"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  setSelectedFile(file);
+                  setUploadError("");
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => setPreviewUrl(e.target.result);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setPreviewUrl(null);
+                  }
+                }}
+              />
+            </Button>
+
+            {previewUrl && (
+              <Box
+                component="img"
+                src={previewUrl}
+                alt="Preview"
+                className="upload-preview-img"
+                sx={{
+                  width: "100%",
+                  maxHeight: 220,
+                  objectFit: "contain",
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  background: "#f5f5f5",
+                }}
+              />
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setUploadOpen(false)}
+            disabled={uploadMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => uploadMutation.mutate()}
+            disabled={!selectedFile || uploadMutation.isPending}
+          >
+            {uploadMutation.isPending ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "Upload"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppBar>
   );
 }

@@ -64,3 +64,56 @@ export async function addCommentToPhoto(req, res) {
 
   return res.sendStatus(200);
 }
+
+export async function createPhoto(req, res) {
+  const url = typeof req.body?.url === "string" ? req.body.url.trim() : "";
+
+  if (!req.session?.userId) {
+    return res.status(401).send("Unauthorized");
+  }
+
+  if (!url) {
+    return res.status(400).send("url is required");
+  }
+
+  const photo = await Photo.create({
+    file_name: url,
+    user_id: req.session.userId,
+    date_time: new Date(),
+  });
+
+  const user = await User.findById(req.session.userId, "_id first_name last_name").lean();
+  const userLookup = new Map(
+    user ? [[String(user._id), serializeUserSummary(user)]] : [],
+  );
+
+  return res.json(serializePhoto(photo.toObject(), userLookup));
+}
+
+export async function togglePhotoLike(req, res) {
+  const { photoId } = req.params;
+  const userId = req.session?.userId;
+
+  if (!userId) {
+    return res.status(401).send("Unauthorized");
+  }
+
+  if (!isValidObjectId(photoId)) {
+    return res.status(404).send("Photo not found");
+  }
+
+  const hasLiked = await Photo.exists({ _id: photoId, likes: userId });
+  const update = hasLiked ? { $pull: { likes: userId } } : { $addToSet: { likes: userId } };
+  const updatedPhoto = await Photo.findByIdAndUpdate(photoId, update, { new: true }).lean();
+
+  if (!updatedPhoto) {
+    return res.status(404).send("Photo not found");
+  }
+
+  const users = await User.find({}, "_id first_name last_name").lean();
+  const userLookup = new Map(
+    users.map((user) => [String(user._id), serializeUserSummary(user)]),
+  );
+
+  return res.json(serializePhoto(updatedPhoto, userLookup));
+}

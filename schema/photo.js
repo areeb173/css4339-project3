@@ -5,7 +5,6 @@ const commentSchema = new mongoose.Schema({
   comment: {
     type: String,
     required: true,
-    trim: true,
   },
   date_time: {
     type: Date,
@@ -35,6 +34,11 @@ const photoSchema = new mongoose.Schema({
   comments: {
     type: [commentSchema],
     default: [],
+  },
+  likes: {
+    type: [mongoose.Schema.Types.ObjectId],
+    default: [],
+    ref: "User",
   },
 });
 

@@ -1,4 +1,33 @@
-.topbar-appBar{
-  height: 60;
-  justify-content: "center";
+.topbar-app-bar {
+  min-height: 60px;
+}
+
+.topbar-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+  display: block;
+  line-height: 1.1;
+}
+
+.topbar-greeting {
+  white-space: nowrap;
+}
+
+.topbar-nav-button {
+  text-transform: none;
+}
+
+.topbar-add-photo-btn {
+  white-space: nowrap;
+}
+
+.upload-choose-btn {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.upload-preview-img {
+  display: block;
 }

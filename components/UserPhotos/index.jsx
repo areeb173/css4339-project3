@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import api, { getErrorMessage } from "../../lib/api";
 import queryKeys from "../../lib/queryKeys";
+import "./styles.css";
 
 function formatDate(dateString) {
   return new Date(dateString).toLocaleString();
@@ -62,6 +63,18 @@ export default function UserPhotos() {
     queryFn: () => api.getPhotos(userId),
   });
 
+  const sessionUserQuery = useQuery({
+    queryKey: queryKeys.sessionUser,
+    queryFn: api.getSessionUser,
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: (photoId) => api.togglePhotoLike(photoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.photos(userId) });
+    },
+  });
+
   const addCommentMutation = useMutation({
     mutationFn: ({ photoId, comment }) => api.addComment(photoId, comment),
     onSuccess: (_, variables) => {
@@ -103,6 +116,7 @@ export default function UserPhotos() {
 
   const user = userQuery.data;
   const photos = photosQuery.data || [];
+  const currentUserId = sessionUserQuery.data?._id;
 
   if (!user) {
     return <Alert severity="warning">User not found.</Alert>;
@@ -123,6 +137,7 @@ export default function UserPhotos() {
   };
 
   const isPendingFor = (photoId) => addCommentMutation.isPending && addCommentMutation.variables?.photoId === photoId;
+  const isLikePendingFor = (photoId) => likeMutation.isPending && likeMutation.variables === photoId;
 
   return (
     <Stack spacing={3}>
@@ -141,15 +156,37 @@ export default function UserPhotos() {
           <Card key={photo._id}>
             <CardMedia
               component="img"
-              image={`/images/${photo.file_name}`}
+              image={photo.file_name}
               alt={`Uploaded by ${user.first_name} ${user.last_name}`}
               sx={{ maxHeight: 480, objectFit: "contain", background: "#f5f5f5" }}
             />
 
             <CardContent>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Posted: {formatDate(photo.date_time)}
-              </Typography>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                justifyContent="space-between"
+                alignItems={{ xs: "flex-start", sm: "center" }}
+                sx={{ mb: 2 }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Posted: {formatDate(photo.date_time)}
+                </Typography>
+
+                <Button
+                  size="small"
+                  variant={photo.likes?.includes(currentUserId) ? "contained" : "outlined"}
+                  color={photo.likes?.includes(currentUserId) ? "error" : "inherit"}
+                  className={photo.likes?.includes(currentUserId) ? "like-btn like-btn--active" : "like-btn"}
+                  onClick={() => likeMutation.mutate(photo._id)}
+                  disabled={isLikePendingFor(photo._id)}
+                  aria-label={photo.likes?.includes(currentUserId) ? "Unlike photo" : "Like photo"}
+                >
+                  {photo.likes?.includes(currentUserId) ? "❤️" : "🤍"}
+                  {" "}
+                  {photo.likes?.length || 0}
+                </Button>
+              </Stack>
 
               <Typography variant="h6" gutterBottom>
                 Comments
